@@ -1,38 +1,35 @@
 
 import streamlit as st
-import pandas as pd
 import pickle
-import os
+import pandas as pd
+from file_watcher import tail_file
 
-st.title("🚨 Cyber Alert Detection AI")
+st.title("🔐 Real-Time Log Anomaly Detector")
 
-uploaded_file = st.file_uploader("Upload a CSV or TXT file", type=["csv", "txt"])
+# Load the model
+model = pickle.load(open("trained_model.pkl", "rb"))
+vectorizer = pickle.load(open("tfidf_vectorizer.pkl", "rb"))
 
-model_path = "cyber_alert_model.pkl"
-vectorizer_path = "vectorizer.pkl"
+st.success("✅ Model loaded successfully!")
 
-if os.path.exists(model_path) and os.path.exists(vectorizer_path):
-    st.success("✅ Model loaded successfully")
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-    with open(vectorizer_path, "rb") as f:
-        vectorizer = pickle.load(f)
-else:
-    st.error("Model files not found!")
+# --- Real-Time Log Simulation ---
+st.subheader("📡 Real-Time Log Simulation")
 
-def predict_alerts(texts):
-    X = vectorizer.transform(texts)
-    return model.predict(X)
+enable_realtime = st.checkbox("Enable Real-Time Log Monitoring")
 
-if uploaded_file:
-    if uploaded_file.name.endswith(".csv"):
-        df = pd.read_csv(uploaded_file)
-        logs = df["log"].dropna().astype(str)
-    else:
-        logs = pd.Series(uploaded_file.read().decode("utf-8").splitlines())
+if enable_realtime:
+    st.info("Watching logs from `logs_stream.txt`...")
+    log_display = st.empty()
+    pred_display = st.empty()
 
-    predictions = predict_alerts(logs)
-    results = pd.DataFrame({"log": logs, "prediction": predictions})
+    pos = 0
+    while True:
+        new_logs, pos = tail_file("logs_stream.txt", last_position=pos)
+        if new_logs:
+            for log in new_logs:
+                log_display.text(f"New log: {log.strip()}")
+                vect_log = vectorizer.transform([log])
+                pred = model.predict(vect_log)[0]
+                pred_display.success(f"Prediction: {pred}")
+        time.sleep(2)
 
-    st.dataframe(results)
-    st.download_button("Download Predictions", results.to_csv(index=False), "predictions.csv")
