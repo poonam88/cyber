@@ -1,0 +1,7 @@
+log,alert
+Unauthorized login attempt from IP 192.168.1.5,1
+System rebooted successfully,0
+Malware detected in file download,1
+User admin accessed settings,0
+Firewall breach detected,1
+Scheduled backup completed,0
